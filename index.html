@@ -1,0 +1,134 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Foxfish</title>
+  <style>
+    * {
+      padding: 0;
+      margin: 0;
+      font-family: sans-serif;
+    }
+    html, body{
+      height: 100%;
+      width: 100%;
+    }
+    body{
+      background-color: #000000;
+      color: #FFFFFF;
+      display: flex;
+      flex-flow: column;
+      overflow: hidden;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1em;
+    }
+    #display {
+      flex: 1;
+    }
+  </style>
+</head>
+<body>
+  <h1>Foxfish</h1>
+  <canvas id="display"></canvas>
+  <script>
+    const cv = document.querySelector("#display")
+    const ctx = cv.getContext("2d")
+    const pixel = 12
+    let hasChanged = true
+    let width
+    let height
+    let aspect
+    let xFactor
+    let yFactor
+
+
+    const boids = []
+    let numBoids = 1024;
+    let pixelsPerTick = 1;
+
+    function makeBoid() {
+      return {
+        id: Math.random(),
+        position: {x:Math.random(), y:Math.random()},
+        direction: Math.random() * Math.PI*2,
+        speed: 0.1+(Math.random()*.9),
+        color: 'rgba(0,0,'+ ((Math.random()*0xFF)|0) + ',' + (0.1+Math.random()*.1) + ')'
+      }
+    }
+
+    const foxfish = makeBoid()
+    foxfish.color = "rgba(255,165,0,0.5)"
+    foxfish.speed = 1
+    function populate() {
+      while (boids.length<numBoids) boids.push(makeBoid())
+      console.log("populate", boids)
+    }
+
+    function resize() {
+      width = ctx.canvas.width = cv.offsetWidth
+      height = ctx.canvas.height = cv.offsetHeight
+      aspect = width/height
+      xFactor = (pixel*pixelsPerTick)/width
+      yFactor = (pixel*pixelsPerTick)/height
+    }
+
+    function rasterize(vec){
+      return {
+        x: (((vec.x*width-pixel)/pixel+1)|0)*pixel,
+        y: (((vec.y*height-pixel)/pixel+1)|0)*pixel
+      }
+    }
+
+    function wrap(vec) {
+      return {
+        x: (1+(vec.x%1))%1,
+        y: (1+(vec.y%1))%1
+      }
+    }
+    function moveInDirection(boid) {
+        boid.position.x += Math.cos(boid.direction) * boid.speed * xFactor
+        boid.position.y += Math.sin(boid.direction) * boid.speed * yFactor
+        boid.position = wrap(boid.position)
+    }
+    function animate() {
+      foxfish.direction += (Math.random()-.5)
+      moveInDirection(foxfish)
+      for (var i = 0; i<numBoids; i++) {
+        boids[i].direction += (Math.random()-.5)
+        moveInDirection(boids[i])
+      }
+    }
+
+    function drawBoid(boid) {
+      ctx.fillStyle = boid.color
+      var vec = rasterize(boid.position)
+      ctx.fillRect(vec.x, vec.y, pixel, pixel);
+    }
+
+    function render() {
+      // /ctx.clearRect(0, 0, width, height)
+      drawBoid(foxfish)
+      for (var i = 0; i<numBoids; i++) {
+        drawBoid(boids[i])
+      }
+
+    }
+
+    function loop() {
+      requestAnimationFrame(() => {
+        animate()
+        if(hasChanged) render()
+        loop()
+      })
+    }
+    function initialize() {
+      window.addEventListener("resize", resize)
+      populate()
+      resize()
+      loop()
+    }
+    initialize()
+  </script>
+</body>
+</html>
